@@ -24,6 +24,12 @@ class Task(BaseModel):
     deadline: str
     done: bool = False
 
+class TaskCreate(BaseModel):
+    description: str
+    start_date: str
+    deadline: str
+    done: bool = False
+
 TASKS_FILE = 'tasks.xlsx'
 
 DATABASE_URL = 'sqlite:///./todo.db'
@@ -107,7 +113,7 @@ def get_tasks(user: Optional[str] = None, db: Session = Depends(get_db)):
     return query.all()
 
 @app.post("/tasks", response_model=TaskOut)
-def add_task(task: Task, user: str = Query(...), db: Session = Depends(get_db)):
+def add_task(task: TaskCreate, user: str = Query(...), db: Session = Depends(get_db)):
     owner = db.query(User).filter(User.username == user).first()
     if not owner:
         raise HTTPException(status_code=400, detail="User not found")

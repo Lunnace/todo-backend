@@ -6,12 +6,3 @@ python-dateutil
 sqlalchemy
 aiosqlite
 
-class TaskOut(BaseModel):
-    id: int
-    description: str
-    start_date: str
-    deadline: str
-    done: bool
-
-    class Config:
-        orm_mode = True

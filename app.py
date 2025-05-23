@@ -63,7 +63,7 @@ class TaskOut(BaseModel):
     deadline: str
     done: bool
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 Base.metadata.create_all(bind=engine)
 

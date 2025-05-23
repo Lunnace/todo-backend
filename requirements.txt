@@ -3,3 +3,6 @@ uvicorn
 openpyxl
 pydantic
 python-dateutil
+sqlalchemy
+aiosqlite
+fastapi-login

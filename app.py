@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
@@ -106,11 +106,22 @@ def get_tasks(user: Optional[str] = None, db: Session = Depends(get_db)):
             return []
     return query.all()
 
-@app.post("/tasks", response_model=Task)
-def add_task(task: Task):
-    tasks.append(task)
-    save_tasks_to_excel(tasks)
-    return task
+@app.post("/tasks", response_model=TaskOut)
+def add_task(task: Task, user: str = Query(...), db: Session = Depends(get_db)):
+    owner = db.query(User).filter(User.username == user).first()
+    if not owner:
+        raise HTTPException(status_code=400, detail="User not found")
+    db_task = Task(
+        description=task.description,
+        start_date=task.start_date,
+        deadline=task.deadline,
+        done=task.done,
+        owner_id=owner.id
+    )
+    db.add(db_task)
+    db.commit()
+    db.refresh(db_task)
+    return db_task
 
 @app.delete("/tasks/{task_idx}")
 def delete_task(task_idx: int):

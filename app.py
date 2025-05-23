@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from openpyxl import Workbook, load_workbook
 import os
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey
@@ -56,6 +56,15 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
+class TaskOut(BaseModel):
+    id: int
+    description: str
+    start_date: str
+    deadline: str
+    done: bool
+    class Config:
+        orm_mode = True
+
 Base.metadata.create_all(bind=engine)
 
 def load_tasks_from_excel():
@@ -79,9 +88,23 @@ def save_tasks_to_excel(tasks):
 
 tasks: List[Task] = load_tasks_from_excel()
 
-@app.get("/tasks", response_model=List[Task])
-def get_tasks():
-    return tasks
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@app.get("/tasks", response_model=List[TaskOut])
+def get_tasks(user: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(Task)
+    if user:
+        owner = db.query(User).filter(User.username == user).first()
+        if owner:
+            query = query.filter(Task.owner_id == owner.id)
+        else:
+            return []
+    return query.all()
 
 @app.post("/tasks", response_model=Task)
 def add_task(task: Task):
@@ -96,13 +119,6 @@ def delete_task(task_idx: int):
         save_tasks_to_excel(tasks)
         return {"message": "Task removed"}
     return {"error": "Invalid index"}
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 @app.post('/register')
 def register(user: UserCreate, db: Session = Depends(get_db)):
